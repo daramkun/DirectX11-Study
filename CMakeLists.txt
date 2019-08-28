@@ -47,8 +47,41 @@ add_executable (${DAY1_CH4_PROJECTNAME} WIN32 ${DAY1_CH4_FILES})
 target_include_directories (${DAY1_CH4_PROJECTNAME} PUBLIC ${INCLUDE_HEADERS})
 target_link_libraries (${DAY1_CH4_PROJECTNAME} ${LINKAGE_STATIC_LIBS})
 
+set (DAY2_CH1_PROJECTNAME DirectX11_Study_Day2_Chapter1)
+set (DAY2_CH1_FILES "src/common.manifest" "src/Day2/1. Colored Triangle/Main.cpp")
+add_executable (${DAY2_CH1_PROJECTNAME} WIN32 ${DAY2_CH1_FILES})
+target_include_directories (${DAY2_CH1_PROJECTNAME} PUBLIC ${INCLUDE_HEADERS})
+target_link_libraries (${DAY2_CH1_PROJECTNAME} ${LINKAGE_STATIC_LIBS})
+
+set (DAY2_CH2_PROJECTNAME DirectX11_Study_Day2_Chapter2)
+set (DAY2_CH2_FILES "src/common.manifest" "src/Day2/2. Transform/Main.cpp")
+add_executable (${DAY2_CH2_PROJECTNAME} WIN32 ${DAY2_CH2_FILES})
+target_include_directories (${DAY2_CH2_PROJECTNAME} PUBLIC ${INCLUDE_HEADERS})
+target_link_libraries (${DAY2_CH2_PROJECTNAME} ${LINKAGE_STATIC_LIBS})
+
+set (DAY2_CH3_PROJECTNAME DirectX11_Study_Day2_Chapter3)
+set (DAY2_CH3_FILES "src/common.manifest" "src/Day2/3. Box/Main.cpp")
+add_executable (${DAY2_CH3_PROJECTNAME} WIN32 ${DAY2_CH3_FILES})
+target_include_directories (${DAY2_CH3_PROJECTNAME} PUBLIC ${INCLUDE_HEADERS})
+target_link_libraries (${DAY2_CH3_PROJECTNAME} ${LINKAGE_STATIC_LIBS})
+
+set (DAY2_CH4_PROJECTNAME DirectX11_Study_Day2_Chapter4)
+set (DAY2_CH4_FILES "src/common.manifest" "src/Day2/4. Depth Buffer/Main.cpp")
+add_executable (${DAY2_CH4_PROJECTNAME} WIN32 ${DAY2_CH4_FILES})
+target_include_directories (${DAY2_CH4_PROJECTNAME} PUBLIC ${INCLUDE_HEADERS})
+target_link_libraries (${DAY2_CH4_PROJECTNAME} ${LINKAGE_STATIC_LIBS})
+
 install (
-	TARGETS "${DAY1_CH1_PROJECTNAME}" "${DAY1_CH2_PROJECTNAME}" "${DAY1_CH3_PROJECTNAME}" "${DAY1_CH4_PROJECTNAME}"
+	TARGETS
+		"${DAY1_CH1_PROJECTNAME}"
+		"${DAY1_CH2_PROJECTNAME}"
+		"${DAY1_CH3_PROJECTNAME}"
+		"${DAY1_CH4_PROJECTNAME}"
+
+		"${DAY2_CH1_PROJECTNAME}"
+		"${DAY2_CH2_PROJECTNAME}"
+		"${DAY2_CH3_PROJECTNAME}"
+		"${DAY2_CH4_PROJECTNAME}"
 	RUNTIME DESTINATION ${INSTALL_BIN_DIR}
 )
 install (

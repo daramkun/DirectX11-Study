@@ -63,7 +63,7 @@ HRESULT CreateDevice11 (HWND hWnd, UINT width, UINT height,
 #define RAC_HULLSHADER										"hs_5_0"
 #define RAC_DOMAINSHADER									"ds_5_0"
 #define RAC_COMPUTESHADER									"cs_5_0"
-HRESULT ReadAndCompile (LPCTSTR filename, LPCSTR profile, LPCSTR main, void* buffer, UINT maxLength);
+HRESULT ReadAndCompile (LPCTSTR filename, LPCSTR profile, LPCSTR main, void* buffer, UINT maxLength, UINT* bufferLength);
 
 HRESULT CreateInputLayoutFromVertexShader (ID3D11Device* d3dDevice, void* vs, UINT vsLength, ID3D11InputLayout** inputLayout);
 

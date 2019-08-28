@@ -214,7 +214,7 @@ HRESULT CreateDevice11 (HWND hWnd, UINT width, UINT height,
 	return S_OK;
 }
 
-HRESULT ReadAndCompile (LPCTSTR filename, LPCSTR profile, LPCSTR main, void* buffer, UINT maxLength)
+HRESULT ReadAndCompile (LPCTSTR filename, LPCSTR profile, LPCSTR main, void* buffer, UINT maxLength, UINT* bufferLength)
 {
 	uint8_t innerBuffer[8192];
 	UINT readLength;
@@ -229,6 +229,7 @@ HRESULT ReadAndCompile (LPCTSTR filename, LPCSTR profile, LPCSTR main, void* buf
 	}
 
 	memcpy (buffer, blob->GetBufferPointer (), min (maxLength, blob->GetBufferSize ()));
+	*bufferLength = blob->GetBufferSize ();
 
 	return S_OK;
 }
