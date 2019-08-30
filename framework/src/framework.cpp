@@ -228,7 +228,8 @@ HRESULT ReadAndCompile (LPCTSTR filename, LPCSTR profile, LPCSTR main, void* buf
 		return E_FAIL;
 
 	CComPtr<ID3DBlob> blob, errMsg;
-	if (FAILED (D3DCompile (innerBuffer, readLength, nullptr, nullptr, nullptr, main, profile, D3DCOMPILE_PACK_MATRIX_ROW_MAJOR, 0, &blob, &errMsg)))
+	if (FAILED (D3DCompile (innerBuffer, readLength, nullptr, nullptr, nullptr,
+		main, profile, D3DCOMPILE_PACK_MATRIX_ROW_MAJOR, 0, &blob, &errMsg)))
 	{
 		OutputDebugStringA ((LPCSTR)(errMsg->GetBufferPointer ()));
 		return E_FAIL;
@@ -389,4 +390,401 @@ HRESULT LoadTexture2D (ID3D11Device* d3dDevice, LPCTSTR filename, ID3D11Texture2
 		return E_FAIL;
 
 	return S_OK;
+}
+
+DirectX::XMFLOAT3 GetNormalVector (const DirectX::XMFLOAT3& a, const DirectX::XMFLOAT3& b, const DirectX::XMFLOAT3& c)
+{
+	DirectX::XMVECTOR va, vb, vc;
+	va = DirectX::XMLoadFloat3 (&a);
+	vb = DirectX::XMLoadFloat3 (&b);
+	vc = DirectX::XMLoadFloat3 (&c);
+
+	DirectX::XMVECTOR temp1 = DirectX::XMVectorSubtract (vb, va)
+		, temp2 = DirectX::XMVectorSubtract (vc, va);
+	DirectX::XMVECTOR temp3 = DirectX::XMVector3Normalize (DirectX::XMVector3Cross (temp1, temp2));
+
+	DirectX::XMFLOAT3 ret;
+	DirectX::XMStoreFloat3 (&ret, temp3);
+
+	return ret;
+}
+
+struct FRAMEWORK_VERTEX
+{
+	DirectX::XMFLOAT3 position;
+	DirectX::XMFLOAT3 normal;
+	DirectX::XMFLOAT2 texcoord;
+	DirectX::XMFLOAT4 color;
+};
+
+UINT FrameworkVertexStride () { return sizeof (FRAMEWORK_VERTEX); }
+
+HRESULT CreateTriangle (ID3D11Device* d3dDevice, ID3D11Buffer** buffer, UINT* vertices)
+{
+	static FRAMEWORK_VERTEX vertexList[] = {
+		{ {-1, -1, 0}, {0, 0, 1}, {0, 1}, {1, 1, 1, 1} },
+		{ {+0, +1, 0}, {0, 0, 1}, {0.5f, 0}, {1, 1, 1, 1} },
+		{ {+1, -1, 0}, {0, 0, 1}, {1, 1}, {1, 1, 1, 1} },
+	};
+
+	if (d3dDevice == nullptr || buffer == nullptr || vertices == nullptr)
+		return E_INVALIDARG;
+
+	*vertices = _countof (vertexList);
+
+	D3D11_BUFFER_DESC bufferDesc = {};
+	bufferDesc.ByteWidth = sizeof (vertexList);
+	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+
+	D3D11_SUBRESOURCE_DATA initialData = {};
+	initialData.pSysMem = vertexList;
+	initialData.SysMemPitch = sizeof (vertexList);
+
+	return d3dDevice->CreateBuffer (&bufferDesc, &initialData, buffer);
+}
+
+HRESULT CreateRectangle (ID3D11Device* d3dDevice, ID3D11Buffer** buffer, UINT* vertices)
+{
+	static FRAMEWORK_VERTEX vertexList[] = {
+		{ {-1, +1, 0}, {0, 0, 1}, {0, 0}, {1, 1, 1, 1} },
+		{ {-1, -1, 0}, {0, 0, 1}, {0, 1}, {1, 1, 1, 1} },
+		{ {+1, +1, 0}, {0, 0, 1}, {1, 0}, {1, 1, 1, 1} },
+
+		{ {-1, -1, 0}, {0, 0, 1}, {0, 1}, {1, 1, 1, 1} },
+		{ {+1, -1, 0}, {0, 0, 1}, {1, 1}, {1, 1, 1, 1} },
+		{ {+1, +1, 0}, {0, 0, 1}, {1, 0}, {1, 1, 1, 1} },
+	};
+
+	if (d3dDevice == nullptr || buffer == nullptr || vertices == nullptr)
+		return E_INVALIDARG;
+
+	*vertices = _countof (vertexList);
+
+	D3D11_BUFFER_DESC bufferDesc = {};
+	bufferDesc.ByteWidth = sizeof (vertexList);
+	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+
+	D3D11_SUBRESOURCE_DATA initialData = {};
+	initialData.pSysMem = vertexList;
+	initialData.SysMemPitch = sizeof (vertexList);
+
+	return d3dDevice->CreateBuffer (&bufferDesc, &initialData, buffer);
+}
+
+HRESULT CreateBox (ID3D11Device* d3dDevice, ID3D11Buffer** buffer, UINT* vertices)
+{
+	static FRAMEWORK_VERTEX vertexList[] = {
+		{ { -1, -1, -1 }, {0, 0, -1}, { 0, 0 }, { 1, 1, 1, 1 } },
+		{ { +1, +1, -1 }, {0, 0, -1}, { 1, 1 }, { 1, 1, 1, 1 } },
+		{ { +1, -1, -1 }, {0, 0, -1}, { 1, 0 }, { 1, 1, 1, 1 } },
+		{ { +1, +1, -1 }, {0, 0, -1}, { 1, 1 }, { 1, 1, 1, 1 } },
+		{ { -1, -1, -1 }, {0, 0, -1}, { 0, 0 }, { 1, 1, 1, 1 } },
+		{ { -1, +1, -1 }, {0, 0, -1}, { 0, 1 }, { 1, 1, 1, 1 } },
+
+		{ { -1, -1, +1 }, {0, 0, +1}, { 0, 0 }, { 1, 1, 1, 1 } },
+		{ { +1, -1, +1 }, {0, 0, +1}, { 1, 0 }, { 1, 1, 1, 1 } },
+		{ { +1, +1, +1 }, {0, 0, +1}, { 1, 1 }, { 1, 1, 1, 1 } },
+		{ { +1, +1, +1 }, {0, 0, +1}, { 1, 1 }, { 1, 1, 1, 1 } },
+		{ { -1, +1, +1 }, {0, 0, +1}, { 0, 1 }, { 1, 1, 1, 1 } },
+		{ { -1, -1, +1 }, {0, 0, +1}, { 0, 0 }, { 1, 1, 1, 1 } },
+
+		{ { -1, +1, +1 }, {-1, 0, 0}, { 1, 0 }, { 1, 1, 1, 1 } },
+		{ { -1, +1, -1 }, {-1, 0, 0}, { 1, 1 }, { 1, 1, 1, 1 } },
+		{ { -1, -1, -1 }, {-1, 0, 0}, { 0, 1 }, { 1, 1, 1, 1 } },
+		{ { -1, -1, -1 }, {-1, 0, 0}, { 0, 1 }, { 1, 1, 1, 1 } },
+		{ { -1, -1, +1 }, {-1, 0, 0}, { 0, 0 }, { 1, 1, 1, 1 } },
+		{ { -1, +1, +1 }, {-1, 0, 0}, { 1, 0 }, { 1, 1, 1, 1 } },
+
+		{ { +1, +1, +1 }, {+1, 0, 0}, { 1, 0 }, { 1, 1, 1, 1 } },
+		{ { +1, -1, -1 }, {+1, 0, 0}, { 0, 1 }, { 1, 1, 1, 1 } },
+		{ { +1, +1, -1 }, {+1, 0, 0}, { 1, 1 }, { 1, 1, 1, 1 } },
+		{ { +1, -1, -1 }, {+1, 0, 0}, { 0, 1 }, { 1, 1, 1, 1 } },
+		{ { +1, +1, +1 }, {+1, 0, 0}, { 1, 0 }, { 1, 1, 1, 1 } },
+		{ { +1, -1, +1 }, {+1, 0, 0}, { 0, 0 }, { 1, 1, 1, 1 } },
+
+		{ { -1, -1, -1 }, {0, -1, 0}, { 0, 1 }, { 1, 1, 1, 1 } },
+		{ { +1, -1, -1 }, {0, -1, 0}, { 1, 1 }, { 1, 1, 1, 1 } },
+		{ { +1, -1, +1 }, {0, -1, 0}, { 1, 0 }, { 1, 1, 1, 1 } },
+		{ { +1, -1, +1 }, {0, -1, 0}, { 1, 0 }, { 1, 1, 1, 1 } },
+		{ { -1, -1, +1 }, {0, -1, 0}, { 0, 0 }, { 1, 1, 1, 1 } },
+		{ { -1, -1, -1 }, {0, -1, 0}, { 0, 1 }, { 1, 1, 1, 1 } },
+
+		{ { -1, +1, -1 }, {0, +1, 0}, { 0, 1 }, { 1, 1, 1, 1 } },
+		{ { +1, +1, +1 }, {0, +1, 0}, { 1, 0 }, { 1, 1, 1, 1 } },
+		{ { +1, +1, -1 }, {0, +1, 0}, { 1, 1 }, { 1, 1, 1, 1 } },
+		{ { +1, +1, +1 }, {0, +1, 0}, { 1, 0 }, { 1, 1, 1, 1 } },
+		{ { -1, +1, -1 }, {0, +1, 0}, { 0, 1 }, { 1, 1, 1, 1 } },
+		{ { -1, +1, +1 }, {0, +1, 0}, { 0, 0 }, { 1, 1, 1, 1 } },
+	};
+
+	if (d3dDevice == nullptr || buffer == nullptr || vertices == nullptr)
+		return E_INVALIDARG;
+
+	*vertices = _countof (vertexList);
+
+	D3D11_BUFFER_DESC bufferDesc = {};
+	bufferDesc.ByteWidth = sizeof (vertexList);
+	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+
+	D3D11_SUBRESOURCE_DATA initialData = {};
+	initialData.pSysMem = vertexList;
+	initialData.SysMemPitch = sizeof (vertexList);
+
+	return d3dDevice->CreateBuffer (&bufferDesc, &initialData, buffer);
+}
+
+HRESULT CreateSphere (ID3D11Device* d3dDevice, ID3D11Buffer** buffer, UINT* vertices)
+{
+	if (d3dDevice == nullptr || buffer == nullptr || vertices == nullptr)
+		return E_INVALIDARG;
+
+	std::vector<FRAMEWORK_VERTEX> vertexList;
+	constexpr unsigned rings = 40;
+	constexpr unsigned sectors = 40;
+
+	float const R = 1.0f / (float)(rings - 1);
+	float const S = 1.0f / (float)(sectors - 1);
+	unsigned r, s;
+
+	std::vector<DirectX::XMFLOAT3> positions;
+	std::vector<DirectX::XMFLOAT2> texcoords;
+	for (r = 0; r < rings; r++) {
+		for (s = 0; s < sectors; s++) {
+			float const y = sin ((-3.141592f / 2) + 3.141592f * r * R);
+			float const x = cos (2 * 3.141592f * s * S) * sin (3.141592f * r * R);
+			float const z = sin (2 * 3.141592f * s * S) * sin (3.141592f * r * R);
+			positions.push_back (DirectX::XMFLOAT3 (x, y, z));
+			texcoords.push_back (DirectX::XMFLOAT2 (s * S, r * R));
+		}
+	}
+
+	std::vector<unsigned> indices;
+	std::vector<DirectX::XMFLOAT3> normals;
+	for (r = 0; r < rings - 1; r++) {
+		for (s = 0; s < sectors - 1; s++) {
+			int curRow = r * sectors;
+			int nextRow = (r + 1) * sectors;
+
+			indices.push_back (curRow + s);
+			indices.push_back (nextRow + s);
+			indices.push_back (nextRow + (s + 1));
+
+			DirectX::XMFLOAT3 normal1 = GetNormalVector (positions[curRow + s], positions[nextRow + s], positions[nextRow + (s + 1)]);
+			normals.push_back (normal1);
+			normals.push_back (normal1);
+			normals.push_back (normal1);
+
+			indices.push_back (curRow + s);
+			indices.push_back (nextRow + (s + 1));
+			indices.push_back (curRow + (s + 1));
+
+			DirectX::XMFLOAT3 normal2 = GetNormalVector (positions[curRow + s], positions[nextRow + (s + 1)], positions[curRow + (s + 1)]);
+			normals.push_back (normal2);
+			normals.push_back (normal2);
+			normals.push_back (normal2);
+		}
+	}
+
+	vertexList.resize (indices.size ());
+	int j = 0;
+	for (auto i = indices.begin (); i != indices.end (); ++i)
+	{
+		FRAMEWORK_VERTEX vtx;
+		vtx.position = positions[*i];
+		vtx.normal = normals[j];
+		vtx.texcoord = texcoords[*i];
+		vtx.color = DirectX::XMFLOAT4 (1, 1, 1, 1);
+		vertexList[j++] = vtx;
+	}
+
+	*vertices = vertexList.size ();
+
+	D3D11_BUFFER_DESC bufferDesc = {};
+	bufferDesc.ByteWidth = vertexList.size () * sizeof (FRAMEWORK_VERTEX);
+	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+
+	D3D11_SUBRESOURCE_DATA initialData = {};
+	initialData.pSysMem = vertexList.data ();
+	initialData.SysMemPitch = sizeof (vertexList);
+
+	return d3dDevice->CreateBuffer (&bufferDesc, &initialData, buffer);
+}
+
+FILE* fopen_fw (LPCTSTR filename, char* mode)
+{
+#ifdef UNICODE
+	USES_CONVERSION;
+#endif
+
+	TCHAR readFile[512];
+	if (PathFileExists (filename))
+	{
+		memcpy (readFile, filename, _tcslen (filename) * sizeof (TCHAR));
+	}
+	else
+	{
+		StringStream ss;
+		ss << TEXT ("..\\res\\");
+		ss << filename;
+		GetFullPathName (ss.str ().c_str (), 512, readFile, nullptr);
+		if (!PathFileExists (readFile))
+		{
+			ss = StringStream ();
+			ss << TEXT ("..\\..\\..\\res\\");
+			ss << filename;
+			GetFullPathName (ss.str ().c_str (), 512, readFile, nullptr);
+			if (!PathFileExists (readFile))
+				return nullptr;
+		}
+	}
+
+	LPCSTR convedFilename;
+#ifdef UNICODE
+	convedFilename = W2A (readFile);
+#else
+	convedFilename = readFile;
+#endif
+
+	return fopen (readFile, mode);
+}
+
+HRESULT CreateModelFromOBJFile (ID3D11Device* d3dDevice, LPCTSTR filename, ID3D11Buffer** buffer, UINT* vertices)
+{
+	if (d3dDevice == nullptr || buffer == nullptr || vertices == nullptr)
+		return E_INVALIDARG;
+
+	std::vector<unsigned> vIndices, uvIndices, nIndices;
+	std::vector<DirectX::XMFLOAT3> tempVertices;
+	std::vector<DirectX::XMFLOAT2> tempUVs;
+	std::vector<DirectX::XMFLOAT3> tempNormals;
+
+	FILE* fp = fopen_fw (filename, "rt");
+	char lineHeader[128];
+	char stupidBuffer[1024];
+
+	enum { POSITION = 0, TEXCOORD = 1, NORMAL = 2 };
+	int prop = POSITION;
+
+	while (true)
+	{
+		int res = fscanf (fp, "%s", lineHeader);
+		if (res == EOF) break;
+
+		if (strcmp (lineHeader, "v") == 0)
+		{
+			DirectX::XMFLOAT3 position;
+			fscanf (fp, "%f %f %f\n", &position.x, &position.y, &position.z);
+			tempVertices.push_back (position);
+		}
+		else if (strcmp (lineHeader, "vt") == 0)
+		{
+			DirectX::XMFLOAT2 uv;
+			fscanf (fp, "%f %f\n", &uv.x, &uv.y);
+			tempUVs.push_back (uv);
+			prop |= TEXCOORD;
+		}
+		else if (strcmp (lineHeader, "vn") == 0)
+		{
+			DirectX::XMFLOAT3 normal;
+			fscanf (fp, "%f %f %f\n", &normal.x, &normal.y, &normal.z);
+			tempNormals.push_back (normal);
+			prop |= NORMAL;
+		}
+		else if (strcmp (lineHeader, "f") == 0)
+		{
+			//std::string vertex1, vertex2, vertex3;
+			unsigned vi[3] = { 0, }, uvi[3] = { 0, }, ni[3] = { 0, };
+			if (prop == (POSITION | NORMAL | TEXCOORD)) {
+				int matches = fscanf (fp, "%d/%d/%d %d/%d/%d %d/%d/%d\n", &vi[0], &uvi[0], &ni[0],
+					&vi[1], &uvi[1], &ni[1], &vi[2], &uvi[2], &ni[2]);
+				if (matches != 9)
+					return E_FAIL;
+			}
+			else if (prop == (POSITION | NORMAL))
+			{
+				int matches = fscanf (fp, "%d//%d %d//%d %d//%d\n", &vi[0], &ni[0],
+					&vi[1], &ni[1], &vi[2], &ni[2]);
+				if (matches != 6)
+					return E_FAIL;
+			}
+			else if (prop == (POSITION | TEXCOORD))
+			{
+				int matches = fscanf (fp, "%d/%d %d/%d %d/%d\n", &vi[0], &uvi[0],
+					&vi[1], &uvi[1], &vi[2], &uvi[2]);
+				if (matches != 6)
+					return E_FAIL;
+			}
+			else if (prop == POSITION)
+			{
+				int matches = fscanf (fp, "%d %d %d\n", &vi[0], &vi[1], &vi[2]);
+				if (matches != 3)
+					return E_FAIL;
+			}
+
+			vIndices.push_back (vi[1]);
+			vIndices.push_back (vi[0]);
+			vIndices.push_back (vi[2]);
+
+			if (prop & TEXCOORD)
+			{
+				uvIndices.push_back (uvi[1]);
+				uvIndices.push_back (uvi[0]);
+				uvIndices.push_back (uvi[2]);
+			}
+			if (prop & NORMAL)
+			{
+				nIndices.push_back (ni[1]);
+				nIndices.push_back (ni[0]);
+				nIndices.push_back (ni[2]);
+			}
+		}
+		else
+			fgets (stupidBuffer, 1024, fp);
+	}
+
+	fclose (fp);
+
+	std::vector<FRAMEWORK_VERTEX> vertexList;
+	for (int i = 0; i < nIndices.size (); ++i)
+	{
+		FRAMEWORK_VERTEX vertex = {};
+		vertex.color = DirectX::XMFLOAT4 (1, 1, 1, 1);
+
+		unsigned vertexIndex = vIndices[i];
+		DirectX::XMFLOAT3 position = tempVertices[vertexIndex - 1];
+		vertex.position = position;
+
+		if (prop & NORMAL)
+		{
+			unsigned normalIndex = nIndices[i];
+			DirectX::XMFLOAT3 normal = tempNormals[normalIndex - 1];
+			vertex.normal = normal;
+		}
+
+		if (prop & TEXCOORD)
+		{
+			unsigned uvIndex = uvIndices[i];
+			DirectX::XMFLOAT2 uv = tempUVs[uvIndex - 1];
+			vertex.texcoord = DirectX::XMFLOAT2 (uv.x, 1 - uv.y);
+		}
+
+		vertexList.push_back (vertex);
+	}
+
+	*vertices = vertexList.size ();
+
+	D3D11_BUFFER_DESC bufferDesc = {};
+	bufferDesc.ByteWidth = vertexList.size () * sizeof (FRAMEWORK_VERTEX);
+	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+
+	D3D11_SUBRESOURCE_DATA initialData = {};
+	initialData.pSysMem = vertexList.data ();
+	initialData.SysMemPitch = sizeof (vertexList);
+
+	return d3dDevice->CreateBuffer (&bufferDesc, &initialData, buffer);
 }

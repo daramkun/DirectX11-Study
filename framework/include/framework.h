@@ -68,4 +68,13 @@ HRESULT ReadAndCompile (LPCTSTR filename, LPCSTR profile, LPCSTR main, void* buf
 HRESULT CreateInputLayoutFromVertexShader (ID3D11Device* d3dDevice, void* vs, UINT vsLength, ID3D11InputLayout** inputLayout);
 HRESULT LoadTexture2D (ID3D11Device* d3dDevice, LPCTSTR filename, ID3D11Texture2D** texture);
 
+DirectX::XMFLOAT3 GetNormalVector (const DirectX::XMFLOAT3& a, const DirectX::XMFLOAT3& b, const DirectX::XMFLOAT3& c);
+
+UINT FrameworkVertexStride ();
+HRESULT CreateTriangle (ID3D11Device* d3dDevice, ID3D11Buffer** buffer, UINT* vertices);
+HRESULT CreateRectangle (ID3D11Device* d3dDevice, ID3D11Buffer** buffer, UINT* vertices);
+HRESULT CreateBox (ID3D11Device* d3dDevice, ID3D11Buffer** buffer, UINT* vertices);
+HRESULT CreateSphere (ID3D11Device* d3dDevice, ID3D11Buffer** buffer, UINT* vertices);
+HRESULT CreateModelFromOBJFile (ID3D11Device* d3dDevice, LPCTSTR filename, ID3D11Buffer** buffer, UINT* vertices);
+
 #endif

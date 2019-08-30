@@ -18,7 +18,7 @@ cbuffer Transform
 VERTEX_OUT main (VERTEX_IN vin)
 {
 	VERTEX_OUT vout;
-	vout.position = mul (float4 (vin.position, 1), worldTransform);
+	vout.position = mul (worldTransform, float4 (vin.position, 1));
 	vout.color = vin.color;
 
 	return vout;

@@ -20,9 +20,9 @@ cbuffer Transform
 VERTEX_OUT main (VERTEX_IN vin)
 {
 	VERTEX_OUT vout;
-	vout.position = mul (worldTransform, float4 (vin.position, 1));
-	vout.position = mul (viewTransform, vout.position);
-	vout.position = mul (projectionTransform, vout.position);
+	vout.position = mul (float4 (vin.position, 1), worldTransform);
+	vout.position = mul (vout.position, viewTransform);
+	vout.position = mul (vout.position, projectionTransform);
 	vout.color = vin.color;
 
 	return vout;

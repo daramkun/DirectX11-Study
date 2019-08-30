@@ -11,7 +11,9 @@ ID3D11DepthStencilView* depthStencilView;
 ID3D11Texture2D* depthStencilBuffer;
 
 ID3D11Buffer* vertexBuffer;
-ID3D11Buffer* constantBuffer;
+UINT vertices;
+ID3D11Buffer* transformConstantBuffer;
+ID3D11Buffer* lightSourceConstantBuffer;
 ID3D11InputLayout* inputLayout;
 ID3D11VertexShader* vertexShader;
 ID3D11PixelShader* pixelShader;
@@ -36,6 +38,11 @@ struct TRANSFORM
 	DirectX::XMMATRIX projectionTransform;
 };
 
+struct LIGHTSOURCE
+{
+	DirectX::XMFLOAT4 PointLights[256];
+};
+
 HRESULT Initialize (HWND hWnd, UINT width, UINT height)
 {
 	if (FAILED (CreateDevice11 (hWnd, width, height, &d3dDevice, &immediateContext, &dxgiSwapChain)))
@@ -54,6 +61,8 @@ HRESULT Initialize (HWND hWnd, UINT width, UINT height)
 	if (FAILED (d3dDevice->CreateRenderTargetView (backBuffer, nullptr, &renderTargetView)))
 		return E_FAIL;
 
+	backBuffer->Release ();
+
 	D3D11_TEXTURE2D_DESC depthStencilBufferDesc = {};
 	depthStencilBufferDesc.ArraySize = 1;
 	depthStencilBufferDesc.MipLevels = 1;
@@ -70,63 +79,7 @@ HRESULT Initialize (HWND hWnd, UINT width, UINT height)
 	if (FAILED (d3dDevice->CreateDepthStencilView (depthStencilBuffer, nullptr, &depthStencilView)))
 		return E_FAIL;
 
-	backBuffer->Release ();
-
-	VERTEX vertices[] =
-	{
-		{ { -0.5f, -0.5f, -0.5f }, { 1, 0, 0, 1 } },
-		{ { +0.5f, +0.5f, -0.5f }, { 1, 0, 0, 1 } },
-		{ { +0.5f, -0.5f, -0.5f }, { 1, 0, 0, 1 } },
-		{ { +0.5f, +0.5f, -0.5f }, { 1, 0, 0, 1 } },
-		{ { -0.5f, -0.5f, -0.5f }, { 1, 0, 0, 1 } },
-		{ { -0.5f, +0.5f, -0.5f }, { 1, 0, 0, 1 } },
-
-		{ { -0.5f, -0.5f, +0.5f }, { 0, 1, 0, 1 } },
-		{ { +0.5f, -0.5f, +0.5f }, { 0, 1, 0, 1 } },
-		{ { +0.5f, +0.5f, +0.5f }, { 0, 1, 0, 1 } },
-		{ { +0.5f, +0.5f, +0.5f }, { 0, 1, 0, 1 } },
-		{ { -0.5f, +0.5f, +0.5f }, { 0, 1, 0, 1 } },
-		{ { -0.5f, -0.5f, +0.5f }, { 0, 1, 0, 1 } },
-
-		{ { -0.5f, +0.5f, +0.5f }, { 0, 0, 1, 1 } },
-		{ { -0.5f, +0.5f, -0.5f }, { 0, 0, 1, 1 } },
-		{ { -0.5f, -0.5f, -0.5f }, { 0, 0, 1, 1 } },
-		{ { -0.5f, -0.5f, -0.5f }, { 0, 0, 1, 1 } },
-		{ { -0.5f, -0.5f, +0.5f }, { 0, 0, 1, 1 } },
-		{ { -0.5f, +0.5f, +0.5f }, { 0, 0, 1, 1 } },
-
-		{ { +0.5f, +0.5f, +0.5f }, { 1, 1, 0, 1 } },
-		{ { +0.5f, -0.5f, -0.5f }, { 1, 1, 0, 1 } },
-		{ { +0.5f, +0.5f, -0.5f }, { 1, 1, 0, 1 } },
-		{ { +0.5f, -0.5f, -0.5f }, { 1, 1, 0, 1 } },
-		{ { +0.5f, +0.5f, +0.5f }, { 1, 1, 0, 1 } },
-		{ { +0.5f, -0.5f, +0.5f }, { 1, 1, 0, 1 } },
-
-		{ { -0.5f, -0.5f, -0.5f }, { 0, 1, 1, 1 } },
-		{ { +0.5f, -0.5f, -0.5f }, { 0, 1, 1, 1 } },
-		{ { +0.5f, -0.5f, +0.5f }, { 0, 1, 1, 1 } },
-		{ { +0.5f, -0.5f, +0.5f }, { 0, 1, 1, 1 } },
-		{ { -0.5f, -0.5f, +0.5f }, { 0, 1, 1, 1 } },
-		{ { -0.5f, -0.5f, -0.5f }, { 0, 1, 1, 1 } },
-
-		{ { -0.5f, +0.5f, -0.5f }, { 1, 0, 1, 1 } },
-		{ { +0.5f, +0.5f, +0.5f }, { 1, 0, 1, 1 } },
-		{ { +0.5f, +0.5f, -0.5f }, { 1, 0, 1, 1 } },
-		{ { +0.5f, +0.5f, +0.5f }, { 1, 0, 1, 1 } },
-		{ { -0.5f, +0.5f, -0.5f }, { 1, 0, 1, 1 } },
-		{ { -0.5f, +0.5f, +0.5f }, { 1, 0, 1, 1 } },
-	};
-
-	D3D11_BUFFER_DESC vertexBufferDesc = {};
-	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-	vertexBufferDesc.ByteWidth = sizeof (vertices);
-	vertexBufferDesc.Usage = D3D11_USAGE_DEFAULT;
-
-	D3D11_SUBRESOURCE_DATA initialData = {};
-	initialData.pSysMem = vertices;
-	initialData.SysMemPitch = sizeof (vertices);
-
-	if (FAILED (d3dDevice->CreateBuffer (&vertexBufferDesc, &initialData, &vertexBuffer)))
+	if (FAILED (CreateBox (d3dDevice, &vertexBuffer, &vertices)))
 		return E_FAIL;
 
 	D3D11_BUFFER_DESC constantBufferDesc = {};
@@ -134,14 +87,30 @@ HRESULT Initialize (HWND hWnd, UINT width, UINT height)
 	constantBufferDesc.ByteWidth = sizeof (TRANSFORM);
 	constantBufferDesc.Usage = D3D11_USAGE_DEFAULT;
 
-	if (FAILED (d3dDevice->CreateBuffer (&constantBufferDesc, nullptr, &constantBuffer)))
+	if (FAILED (d3dDevice->CreateBuffer (&constantBufferDesc, nullptr, &transformConstantBuffer)))
+		return E_FAIL;
+
+	constantBufferDesc.ByteWidth = sizeof (LIGHTSOURCE);
+
+	LIGHTSOURCE lightSource = {};
+	lightSource.PointLights[0] = DirectX::XMFLOAT4 (0, 5, 0, 1);
+	lightSource.PointLights[1] = DirectX::XMFLOAT4 (5, 5, 5, 1);
+	//lightSource.PointLights[2] = DirectX::XMFLOAT4 (5, 5, -5, 1);
+	//lightSource.PointLights[3] = DirectX::XMFLOAT4 (-5, 5, -5, 1);
+	//lightSource.PointLights[4] = DirectX::XMFLOAT4 (-5, 5, 5, 1);
+
+	D3D11_SUBRESOURCE_DATA lightSourceInitialData = {};
+	lightSourceInitialData.pSysMem = &lightSource;
+	lightSourceInitialData.SysMemPitch = sizeof (LIGHTSOURCE);
+
+	if (FAILED (d3dDevice->CreateBuffer (&constantBufferDesc, &lightSourceInitialData, &lightSourceConstantBuffer)))
 		return E_FAIL;
 
 	uint8_t vertexShaderData[4096], pixelShaderData[4096];
 	UINT vertexShaderDataLength, pixelShaderDataLength;
-	if (FAILED (ReadAndCompile (TEXT ("Day2\\3\\TriangleVertexShader.hlsl"), RAC_VERTEXSHADER, "main", vertexShaderData, 4096, &vertexShaderDataLength)))
+	if (FAILED (ReadAndCompile (TEXT ("Day4\\2\\LightingVertexShader.hlsl"), RAC_VERTEXSHADER, "main", vertexShaderData, 4096, &vertexShaderDataLength)))
 		return E_FAIL;
-	if (FAILED (ReadAndCompile (TEXT ("Day2\\3\\TrianglePixelShader.hlsl"), RAC_PIXELSHADER, "main", pixelShaderData, 4096, &pixelShaderDataLength)))
+	if (FAILED (ReadAndCompile (TEXT ("Day4\\2\\LightingPixelShader.hlsl"), RAC_PIXELSHADER, "main", pixelShaderData, 4096, &pixelShaderDataLength)))
 		return E_FAIL;
 
 	if (FAILED (d3dDevice->CreateVertexShader (vertexShaderData, vertexShaderDataLength, nullptr, &vertexShader)))
@@ -170,7 +139,8 @@ void Destroy ()
 	SAFE_RELEASE (pixelShader);
 	SAFE_RELEASE (vertexShader);
 	SAFE_RELEASE (inputLayout);
-	SAFE_RELEASE (constantBuffer);
+	SAFE_RELEASE (lightSourceConstantBuffer);
+	SAFE_RELEASE (transformConstantBuffer);
 	SAFE_RELEASE (vertexBuffer);
 
 	SAFE_RELEASE (depthStencilBuffer);
@@ -189,7 +159,7 @@ void Update (float dt)
 	TRANSFORM transform;
 	transform.worldTransform = DirectX::XMMatrixRotationY (transformRotationAngle);
 
-	DirectX::XMFLOAT3 camPosOrigin = DirectX::XMFLOAT3 (1, 1, 1),
+	DirectX::XMFLOAT3 camPosOrigin = DirectX::XMFLOAT3 (5, 5, 5),
 		camTargetOrigin = DirectX::XMFLOAT3 (0, 0, 0),
 		camUpOrigin = DirectX::XMFLOAT3 (0, 1, 0);
 	DirectX::XMVECTOR camPos = DirectX::XMLoadFloat3 (&camPosOrigin),
@@ -199,12 +169,12 @@ void Update (float dt)
 
 	transform.projectionTransform = DirectX::XMMatrixPerspectiveFovLH (3.141592f / 4, fov, 0.0001f, 1000);
 
-	immediateContext->UpdateSubresource (constantBuffer, 0, nullptr, &transform, sizeof (transform), 0);
+	immediateContext->UpdateSubresource (transformConstantBuffer, 0, nullptr, &transform, sizeof (transform), 0);
 }
 
 void Render (float dt)
 {
-	float clearColor[] = { 0x64 / 255.0f, 0x95 / 255.0f, 0xed / 255.0f, 1 };
+	float clearColor[] = { 0, 0, 0, 1 };
 	immediateContext->ClearRenderTargetView (renderTargetView, clearColor);
 	immediateContext->ClearDepthStencilView (depthStencilView, D3D11_CLEAR_DEPTH, 1, 0);
 
@@ -213,15 +183,16 @@ void Render (float dt)
 	immediateContext->RSSetState (rasterizerState);
 
 	immediateContext->IASetPrimitiveTopology (D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	UINT strides = sizeof (VERTEX), offset = 0;
+	UINT strides = FrameworkVertexStride (), offset = 0;
 	immediateContext->IASetVertexBuffers (0, 1, &vertexBuffer, &strides, &offset);
 	immediateContext->IASetInputLayout (inputLayout);
 
 	immediateContext->VSSetShader (vertexShader, nullptr, 0);
-	immediateContext->VSSetConstantBuffers (0, 1, &constantBuffer);
+	immediateContext->VSSetConstantBuffers (0, 1, &transformConstantBuffer);
+	immediateContext->VSSetConstantBuffers (1, 1, &lightSourceConstantBuffer);
 	immediateContext->PSSetShader (pixelShader, nullptr, 0);
 
-	immediateContext->Draw (36, 0);
+	immediateContext->Draw (vertices, 0);
 
 	dxgiSwapChain->Present (0, 0);
 }

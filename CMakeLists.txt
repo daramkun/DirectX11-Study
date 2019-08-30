@@ -89,6 +89,18 @@ add_executable (${DAY3_CH3_PROJECTNAME} WIN32 ${DAY3_CH3_FILES})
 target_include_directories (${DAY3_CH3_PROJECTNAME} PUBLIC ${INCLUDE_HEADERS})
 target_link_libraries (${DAY3_CH3_PROJECTNAME} ${LINKAGE_STATIC_LIBS})
 
+set (DAY4_CH1_PROJECTNAME DirectX11_Study_Day4_Chapter1)
+set (DAY4_CH1_FILES "src/common.manifest" "src/Day4/1. Blending/Main.cpp")
+add_executable (${DAY4_CH1_PROJECTNAME} WIN32 ${DAY4_CH1_FILES})
+target_include_directories (${DAY4_CH1_PROJECTNAME} PUBLIC ${INCLUDE_HEADERS})
+target_link_libraries (${DAY4_CH1_PROJECTNAME} ${LINKAGE_STATIC_LIBS})
+
+set (DAY4_CH2_PROJECTNAME DirectX11_Study_Day4_Chapter2)
+set (DAY4_CH2_FILES "src/common.manifest" "src/Day4/2. Forward Lighting/Main.cpp")
+add_executable (${DAY4_CH2_PROJECTNAME} WIN32 ${DAY4_CH2_FILES})
+target_include_directories (${DAY4_CH2_PROJECTNAME} PUBLIC ${INCLUDE_HEADERS})
+target_link_libraries (${DAY4_CH2_PROJECTNAME} ${LINKAGE_STATIC_LIBS})
+
 install (
 	TARGETS
 		"${DAY1_CH1_PROJECTNAME}"
@@ -104,6 +116,9 @@ install (
 		"${DAY3_CH1_PROJECTNAME}"
 		"${DAY3_CH2_PROJECTNAME}"
 		"${DAY3_CH3_PROJECTNAME}"
+
+		"${DAY4_CH1_PROJECTNAME}"
+		"${DAY4_CH2_PROJECTNAME}"
 	RUNTIME DESTINATION ${INSTALL_BIN_DIR}
 )
 install (
