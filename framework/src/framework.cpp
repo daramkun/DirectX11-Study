@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <shlwapi.h>
+#include <atlconv.h>
 
 #include <string>
 #include <sstream>
@@ -67,6 +68,9 @@ LRESULT CALLBACK WndProc (HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE, LPSTR, int)
 {
+	if (FAILED (CoInitialize (0)))
+		return -1;
+
 	WNDCLASS wndClass =
 	{
 		NULL, WndProc, 0, 0, GetModuleHandle (nullptr),
@@ -119,6 +123,8 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE, LPSTR, int)
 		Sleep (0);
 
 	} while (running);
+
+	CoUninitialize ();
 
 	return (int)msg.wParam;
 }
@@ -222,7 +228,7 @@ HRESULT ReadAndCompile (LPCTSTR filename, LPCSTR profile, LPCSTR main, void* buf
 		return E_FAIL;
 
 	CComPtr<ID3DBlob> blob, errMsg;
-	if (FAILED (D3DCompile (innerBuffer, readLength, nullptr, nullptr, nullptr, main, profile, 0, 0, &blob, &errMsg)))
+	if (FAILED (D3DCompile (innerBuffer, readLength, nullptr, nullptr, nullptr, main, profile, D3DCOMPILE_PACK_MATRIX_ROW_MAJOR, 0, &blob, &errMsg)))
 	{
 		OutputDebugStringA ((LPCSTR)(errMsg->GetBufferPointer ()));
 		return E_FAIL;
@@ -296,6 +302,90 @@ HRESULT CreateInputLayoutFromVertexShader (ID3D11Device* d3dDevice, void* vs, UI
 	}
 
 	if (FAILED (d3dDevice->CreateInputLayout (inputLayoutDesc.data (), inputLayoutDesc.size (), vs, vsLength, inputLayout)))
+		return E_FAIL;
+
+	return S_OK;
+}
+
+HRESULT LoadTexture2D (ID3D11Device* d3dDevice, LPCTSTR filename, ID3D11Texture2D** texture)
+{
+#ifndef UNICODE
+	USES_CONVERSION;
+#endif
+
+	TCHAR readFile[512];
+	if (PathFileExists (filename))
+	{
+		memcpy (readFile, filename, _tcslen (filename) * sizeof (TCHAR));
+	}
+	else
+	{
+		StringStream ss;
+		ss << TEXT ("..\\res\\");
+		ss << filename;
+		GetFullPathName (ss.str ().c_str (), 512, readFile, nullptr);
+		if (!PathFileExists (readFile))
+		{
+			ss = StringStream ();
+			ss << TEXT ("..\\..\\..\\res\\");
+			ss << filename;
+			GetFullPathName (ss.str ().c_str (), 512, readFile, nullptr);
+			if (!PathFileExists (readFile))
+				return E_FAIL;
+		}
+	}
+
+	LPCWSTR convedFilename;
+#ifndef UNICODE
+	convedFilename = A2W (readFile);
+#else
+	convedFilename = readFile;
+#endif
+
+	CComPtr<IWICImagingFactory> wicFactory;
+	if (FAILED (CoCreateInstance (CLSID_WICImagingFactory, nullptr, CLSCTX_ALL, __uuidof(IWICImagingFactory), (void**)& wicFactory)))
+		return E_FAIL;
+
+	CComPtr<IWICBitmapDecoder> wicDecoder;
+	if (FAILED (wicFactory->CreateDecoderFromFilename (convedFilename, nullptr, GENERIC_READ, WICDecodeMetadataCacheOnDemand, &wicDecoder)))
+		return E_FAIL;
+
+	CComPtr<IWICBitmapFrameDecode> frameDecode;
+	if (FAILED (wicDecoder->GetFrame (0, &frameDecode)))
+		return E_FAIL;
+
+	CComPtr<IWICFormatConverter> formatConverter;
+	if (FAILED (wicFactory->CreateFormatConverter (&formatConverter)))
+		return E_FAIL;
+
+	if (FAILED (formatConverter->Initialize (frameDecode, GUID_WICPixelFormat32bppBGRA,
+		WICBitmapDitherTypeNone, nullptr, 1, WICBitmapPaletteTypeCustom)))
+		return E_FAIL;
+
+	UINT width, height;
+	formatConverter->GetSize (&width, &height);
+	UINT stride = width * 4, totalSize = stride * height;
+
+	std::vector<BYTE> buffer (totalSize);
+	if (FAILED (formatConverter->CopyPixels (nullptr, stride, totalSize, buffer.data ())))
+		return E_FAIL;
+
+	D3D11_TEXTURE2D_DESC textureDesc = {};
+	textureDesc.ArraySize = 1;
+	textureDesc.MipLevels = 1;
+	textureDesc.Width = width;
+	textureDesc.Height = height;
+	textureDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+	textureDesc.Usage = D3D11_USAGE_DEFAULT;
+	textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	textureDesc.SampleDesc.Count = 1;
+
+	D3D11_SUBRESOURCE_DATA textureInitialData = {};
+	textureInitialData.pSysMem = buffer.data ();
+	textureInitialData.SysMemPitch = stride;
+	textureInitialData.SysMemSlicePitch = totalSize;
+
+	if (FAILED (d3dDevice->CreateTexture2D (&textureDesc, &textureInitialData, texture)))
 		return E_FAIL;
 
 	return S_OK;

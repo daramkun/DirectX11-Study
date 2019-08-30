@@ -71,6 +71,24 @@ add_executable (${DAY2_CH4_PROJECTNAME} WIN32 ${DAY2_CH4_FILES})
 target_include_directories (${DAY2_CH4_PROJECTNAME} PUBLIC ${INCLUDE_HEADERS})
 target_link_libraries (${DAY2_CH4_PROJECTNAME} ${LINKAGE_STATIC_LIBS})
 
+set (DAY3_CH1_PROJECTNAME DirectX11_Study_Day3_Chapter1)
+set (DAY3_CH1_FILES "src/common.manifest" "src/Day3/1. Texturing/Main.cpp")
+add_executable (${DAY3_CH1_PROJECTNAME} WIN32 ${DAY3_CH1_FILES})
+target_include_directories (${DAY3_CH1_PROJECTNAME} PUBLIC ${INCLUDE_HEADERS})
+target_link_libraries (${DAY3_CH1_PROJECTNAME} ${LINKAGE_STATIC_LIBS})
+
+set (DAY3_CH2_PROJECTNAME DirectX11_Study_Day3_Chapter2)
+set (DAY3_CH2_FILES "src/common.manifest" "src/Day3/2. Multi Texturing/Main.cpp")
+add_executable (${DAY3_CH2_PROJECTNAME} WIN32 ${DAY3_CH2_FILES})
+target_include_directories (${DAY3_CH2_PROJECTNAME} PUBLIC ${INCLUDE_HEADERS})
+target_link_libraries (${DAY3_CH2_PROJECTNAME} ${LINKAGE_STATIC_LIBS})
+
+set (DAY3_CH3_PROJECTNAME DirectX11_Study_Day3_Chapter3)
+set (DAY3_CH3_FILES "src/common.manifest" "src/Day3/3. Draw Vertices without Vertex Buffer/Main.cpp")
+add_executable (${DAY3_CH3_PROJECTNAME} WIN32 ${DAY3_CH3_FILES})
+target_include_directories (${DAY3_CH3_PROJECTNAME} PUBLIC ${INCLUDE_HEADERS})
+target_link_libraries (${DAY3_CH3_PROJECTNAME} ${LINKAGE_STATIC_LIBS})
+
 install (
 	TARGETS
 		"${DAY1_CH1_PROJECTNAME}"
@@ -82,6 +100,10 @@ install (
 		"${DAY2_CH2_PROJECTNAME}"
 		"${DAY2_CH3_PROJECTNAME}"
 		"${DAY2_CH4_PROJECTNAME}"
+
+		"${DAY3_CH1_PROJECTNAME}"
+		"${DAY3_CH2_PROJECTNAME}"
+		"${DAY3_CH3_PROJECTNAME}"
 	RUNTIME DESTINATION ${INSTALL_BIN_DIR}
 )
 install (

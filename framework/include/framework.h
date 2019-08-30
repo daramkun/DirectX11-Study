@@ -66,5 +66,6 @@ HRESULT CreateDevice11 (HWND hWnd, UINT width, UINT height,
 HRESULT ReadAndCompile (LPCTSTR filename, LPCSTR profile, LPCSTR main, void* buffer, UINT maxLength, UINT* bufferLength);
 
 HRESULT CreateInputLayoutFromVertexShader (ID3D11Device* d3dDevice, void* vs, UINT vsLength, ID3D11InputLayout** inputLayout);
+HRESULT LoadTexture2D (ID3D11Device* d3dDevice, LPCTSTR filename, ID3D11Texture2D** texture);
 
 #endif
