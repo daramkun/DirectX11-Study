@@ -1,6 +1,6 @@
 #include <framework.h>
 
-#define SAFE_RELEASE(x)										(x)->Release ()
+#define SAFE_RELEASE(x)										if ((x)) (x)->Release ()
 
 IDXGISwapChain* dxgiSwapChain;
 ID3D11Device* d3dDevice;
@@ -24,12 +24,6 @@ D3D11_VIEWPORT viewport = {};
 
 float transformRotationAngle;
 float fov;
-
-struct VERTEX
-{
-	DirectX::XMFLOAT3 position;
-	DirectX::XMFLOAT4 color;
-};
 
 struct TRANSFORM
 {
