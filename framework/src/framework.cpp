@@ -124,6 +124,8 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE, LPSTR, int)
 
 	} while (running);
 
+	Destroy ();
+
 	CoUninitialize ();
 
 	return (int)msg.wParam;
@@ -151,12 +153,17 @@ HRESULT CreateDevice11 (HWND hWnd, UINT width, UINT height,
 		|| device == nullptr || immediate == nullptr || swapChain == nullptr)
 		return E_INVALIDARG;
 
+	DWORD createDeviceFlags = D3D11_CREATE_DEVICE_BGRA_SUPPORT;
+#if defined(DEBUG) || defined(_DEBUG) || !defined (NDEBUG)
+	createDeviceFlags |= D3D11_CREATE_DEVICE_DEBUG;
+#endif
+
 	if (IsWindows8OrGreater ())
 	{
 		CComPtr<ID3D11Device> d3dDevice;
 		CComPtr<ID3D11DeviceContext> immediateContext;
 		if (FAILED (D3D11CreateDevice (nullptr, D3D_DRIVER_TYPE_HARDWARE, NULL,
-			D3D11_CREATE_DEVICE_BGRA_SUPPORT, nullptr, 0, D3D11_SDK_VERSION,
+			createDeviceFlags, nullptr, 0, D3D11_SDK_VERSION,
 			&d3dDevice, nullptr, &immediateContext)))
 			return E_FAIL;
 
@@ -212,7 +219,7 @@ HRESULT CreateDevice11 (HWND hWnd, UINT width, UINT height,
 		swapChainDesc.SampleDesc.Count = 1;
 
 		if (FAILED (D3D11CreateDeviceAndSwapChain (nullptr, D3D_DRIVER_TYPE_HARDWARE, NULL,
-			D3D11_CREATE_DEVICE_BGRA_SUPPORT, nullptr, 0, D3D11_SDK_VERSION, &swapChainDesc,
+			createDeviceFlags, nullptr, 0, D3D11_SDK_VERSION, &swapChainDesc,
 			swapChain, device, nullptr, immediate)))
 			return E_FAIL;
 	}
@@ -663,7 +670,10 @@ HRESULT CreateModelFromOBJFile (ID3D11Device* d3dDevice, LPCTSTR filename, ID3D1
 	std::vector<DirectX::XMFLOAT3> tempNormals;
 
 	FILE* fp = fopen_fw (filename, "rt");
-	char lineHeader[128];
+	if (fp == nullptr)
+		return E_FAIL;
+
+	char lineHeader[256];
 	char stupidBuffer[1024];
 
 	enum { POSITION = 0, TEXCOORD = 1, NORMAL = 2 };
@@ -678,6 +688,7 @@ HRESULT CreateModelFromOBJFile (ID3D11Device* d3dDevice, LPCTSTR filename, ID3D1
 		{
 			DirectX::XMFLOAT3 position;
 			fscanf (fp, "%f %f %f\n", &position.x, &position.y, &position.z);
+			position.z = 1 - position.z;
 			tempVertices.push_back (position);
 		}
 		else if (strcmp (lineHeader, "vt") == 0)
@@ -691,6 +702,7 @@ HRESULT CreateModelFromOBJFile (ID3D11Device* d3dDevice, LPCTSTR filename, ID3D1
 		{
 			DirectX::XMFLOAT3 normal;
 			fscanf (fp, "%f %f %f\n", &normal.x, &normal.y, &normal.z);
+			normal.z = 1 - normal.z;
 			tempNormals.push_back (normal);
 			prop |= NORMAL;
 		}

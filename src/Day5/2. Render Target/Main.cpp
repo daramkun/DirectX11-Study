@@ -121,6 +121,7 @@ void Destroy ()
 	SAFE_RELEASE (inputLayout);
 	SAFE_RELEASE (vertexBuffer);
 
+	SAFE_RELEASE (customRenderTargetBufferSRV);
 	SAFE_RELEASE (customRenderTargetBuffer);
 	SAFE_RELEASE (customRenderTargetView);
 	SAFE_RELEASE (renderTargetView);
