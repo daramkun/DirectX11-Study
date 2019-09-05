@@ -28,7 +28,6 @@ ID3D11DepthStencilState* depthStencilState;
 D3D11_VIEWPORT viewport = {};
 
 float transformRotationAngle;
-float fov;
 
 struct TRANSFORM
 {
@@ -36,6 +35,7 @@ struct TRANSFORM
 	DirectX::XMMATRIX viewTransform;
 	DirectX::XMMATRIX projectionTransform;
 };
+TRANSFORM transform;
 
 struct LIGHTSOURCE
 {
@@ -189,7 +189,14 @@ HRESULT Initialize (HWND hWnd, UINT width, UINT height)
 	if (FAILED (d3dDevice->CreateDepthStencilState (&depthStencilDesc, &depthStencilState)))
 		return E_FAIL;
 
-	fov = width / (float)height;
+	DirectX::XMFLOAT3 camPosOrigin = DirectX::XMFLOAT3 (15, 15, 15),
+		camTargetOrigin = DirectX::XMFLOAT3 (0, 0, 0),
+		camUpOrigin = DirectX::XMFLOAT3 (0, 1, 0);
+	DirectX::XMVECTOR camPos = DirectX::XMLoadFloat3 (&camPosOrigin),
+		camTarget = DirectX::XMLoadFloat3 (&camTargetOrigin),
+		camUp = DirectX::XMLoadFloat3 (&camUpOrigin);
+	transform.viewTransform = DirectX::XMMatrixLookAtLH (camPos, camTarget, camUp);
+	transform.projectionTransform = DirectX::XMMatrixPerspectiveFovLH (3.141592f / 4, width / (float)height, 0.0001f, 1000);
 
 	return S_OK;
 }
@@ -230,21 +237,6 @@ void Destroy ()
 void Update (float dt)
 {
 	transformRotationAngle += dt;
-
-	TRANSFORM transform;
-	transform.worldTransform = DirectX::XMMatrixRotationY (transformRotationAngle);
-
-	DirectX::XMFLOAT3 camPosOrigin = DirectX::XMFLOAT3 (5, 5, 5),
-		camTargetOrigin = DirectX::XMFLOAT3 (0, 0, 0),
-		camUpOrigin = DirectX::XMFLOAT3 (0, 1, 0);
-	DirectX::XMVECTOR camPos = DirectX::XMLoadFloat3 (&camPosOrigin),
-		camTarget = DirectX::XMLoadFloat3 (&camTargetOrigin),
-		camUp = DirectX::XMLoadFloat3 (&camUpOrigin);
-	transform.viewTransform = DirectX::XMMatrixLookAtLH (camPos, camTarget, camUp);
-
-	transform.projectionTransform = DirectX::XMMatrixPerspectiveFovLH (3.141592f / 4, fov, 0.0001f, 1000);
-
-	immediateContext->UpdateSubresource (transformConstantBuffer, 0, nullptr, &transform, sizeof (transform), 0);
 }
 
 void Render (float dt)
@@ -270,10 +262,30 @@ void Render (float dt)
 	immediateContext->VSSetConstantBuffers (0, 1, &transformConstantBuffer);
 	immediateContext->PSSetShader (pixelShader1, nullptr, 0);
 
-	immediateContext->Draw (vertices, 0);
+	static DirectX::XMFLOAT3 objectPositions[] =
+	{
+		{ -15, 0, -15 }, { -10, 0, -15 }, { -5, 0, -15 }, { 0, 0, -15 }, { 5, 0, -15 }, { 10, 0, -15 }, { 15, 0, -15 },
+		{ -15, 0, -10 }, { -10, 0, -10 }, { -5, 0, -10 }, { 0, 0, -10 }, { 5, 0, -10 }, { 10, 0, -10 }, { 15, 0, -10 },
+		{ -15, 0, -5 }, { -10, 0, -5 }, { -5, 0, -5 }, { 0, 0, -5 }, { 5, 0, -5 }, { 10, 0, -5 }, { 15, 0, -5 },
+		{ -15, 0, 0 }, { -10, 0, 0 }, { -5, 0, 0 }, { 0, 0, 0 }, { 5, 0, 0 }, { 10, 0, 0 }, { 15, 0, 0 },
+		{ -15, 0, 5 }, { -10, 0, 5 }, { -5, 0, 5 }, { 0, 0, 5 }, { 5, 0, 5 }, { 10, 0, 5 }, { 15, 0, 5 },
+		{ -15, 0, 10 }, { -10, 0, 10 }, { -5, 0, 10 }, { 0, 0, 10 }, { 5, 0, 10 }, { 10, 0, 10 }, { 15, 0, 10 },
+		{ -15, 0, 15 }, { -10, 0, 15 }, { -5, 0, 15 }, { 0, 0, 15 }, { 5, 0, 15 }, { 10, 0, 15 }, { 15, 0, 15 },
+	};
+
+	for (DirectX::XMFLOAT3& pos : objectPositions)
+	{
+		transform.worldTransform = DirectX::XMMatrixMultiply (
+			DirectX::XMMatrixRotationY (transformRotationAngle),
+			DirectX::XMMatrixTranslation (pos.x, pos.y, pos.z)
+		);
+		immediateContext->UpdateSubresource (transformConstantBuffer, 0, nullptr, &transform, sizeof (transform), 0);
+		immediateContext->Draw (vertices, 0);
+	}
 
 	immediateContext->ClearRenderTargetView (renderTargetView, clearColor);
-	immediateContext->OMSetRenderTargets (1, &renderTargetView, nullptr);
+	ID3D11RenderTargetView* renderTargetViews[] = { renderTargetView, nullptr, nullptr };
+	immediateContext->OMSetRenderTargets (3, renderTargetViews, nullptr);
 	immediateContext->RSSetViewports (1, &viewport);
 
 	immediateContext->IASetPrimitiveTopology (D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);

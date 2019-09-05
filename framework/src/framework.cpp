@@ -688,13 +688,14 @@ HRESULT CreateModelFromOBJFile (ID3D11Device* d3dDevice, LPCTSTR filename, ID3D1
 		{
 			DirectX::XMFLOAT3 position;
 			fscanf (fp, "%f %f %f\n", &position.x, &position.y, &position.z);
-			position.z = 1 - position.z;
+			position.z = 0 - position.z;
 			tempVertices.push_back (position);
 		}
 		else if (strcmp (lineHeader, "vt") == 0)
 		{
 			DirectX::XMFLOAT2 uv;
 			fscanf (fp, "%f %f\n", &uv.x, &uv.y);
+			uv.y = 1 - uv.y;
 			tempUVs.push_back (uv);
 			prop |= TEXCOORD;
 		}
@@ -702,13 +703,12 @@ HRESULT CreateModelFromOBJFile (ID3D11Device* d3dDevice, LPCTSTR filename, ID3D1
 		{
 			DirectX::XMFLOAT3 normal;
 			fscanf (fp, "%f %f %f\n", &normal.x, &normal.y, &normal.z);
-			normal.z = 1 - normal.z;
+			normal.z = 0 - normal.z;
 			tempNormals.push_back (normal);
 			prop |= NORMAL;
 		}
 		else if (strcmp (lineHeader, "f") == 0)
 		{
-			//std::string vertex1, vertex2, vertex3;
 			unsigned vi[3] = { 0, }, uvi[3] = { 0, }, ni[3] = { 0, };
 			if (prop == (POSITION | NORMAL | TEXCOORD)) {
 				int matches = fscanf (fp, "%d/%d/%d %d/%d/%d %d/%d/%d\n", &vi[0], &uvi[0], &ni[0],
@@ -761,27 +761,27 @@ HRESULT CreateModelFromOBJFile (ID3D11Device* d3dDevice, LPCTSTR filename, ID3D1
 	fclose (fp);
 
 	std::vector<FRAMEWORK_VERTEX> vertexList;
-	for (int i = 0; i < nIndices.size (); ++i)
+	for (int i = 0; i < vIndices.size (); ++i)
 	{
 		FRAMEWORK_VERTEX vertex = {};
 		vertex.color = DirectX::XMFLOAT4 (1, 1, 1, 1);
 
-		unsigned vertexIndex = vIndices[i];
-		DirectX::XMFLOAT3 position = tempVertices[vertexIndex - 1];
+		unsigned vertexIndex = vIndices[i] - 1;
+		DirectX::XMFLOAT3 position = tempVertices[vertexIndex];
 		vertex.position = position;
 
 		if (prop & NORMAL)
 		{
-			unsigned normalIndex = nIndices[i];
-			DirectX::XMFLOAT3 normal = tempNormals[normalIndex - 1];
+			unsigned normalIndex = nIndices[i] - 1;
+			DirectX::XMFLOAT3 normal = tempNormals[normalIndex];
 			vertex.normal = normal;
 		}
 
 		if (prop & TEXCOORD)
 		{
-			unsigned uvIndex = uvIndices[i];
-			DirectX::XMFLOAT2 uv = tempUVs[uvIndex - 1];
-			vertex.texcoord = DirectX::XMFLOAT2 (uv.x, 1 - uv.y);
+			unsigned uvIndex = uvIndices[i] - 1;
+			DirectX::XMFLOAT2 uv = tempUVs[uvIndex];
+			vertex.texcoord = uv;
 		}
 
 		vertexList.push_back (vertex);

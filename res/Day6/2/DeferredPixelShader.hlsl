@@ -2,6 +2,7 @@ struct PIXEL_IN
 {
     float4 position1 : SV_Position;
     float4 position2 : POSITION;
+    float4 position3 : POSITION1;
     float3 normal : NORMAL;
     float2 texcoord : TEXCOORD;
     float4 color : COLOR;
@@ -21,7 +22,7 @@ PIXEL_OUT main (PIXEL_IN pin)
     pout.color = pin.color;
     pout.position = pin.position2;
     pout.normal = float4(normalize(pin.normal), 1);
-    pout.depth = pin.position2.z / pin.position2.w;
+    pout.depth = pin.position3.z / pin.position3.w;
 
     return pout;
 }

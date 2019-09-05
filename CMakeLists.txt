@@ -156,33 +156,18 @@ add_executable (${DAY6_CH3_PROJECTNAME} WIN32 ${DAY6_CH3_FILES})
 target_include_directories (${DAY6_CH3_PROJECTNAME} PUBLIC ${INCLUDE_HEADERS})
 target_link_libraries (${DAY6_CH3_PROJECTNAME} ${LINKAGE_STATIC_LIBS})
 
-install (
-	TARGETS
-		"${DAY1_CH1_PROJECTNAME}"
-		"${DAY1_CH2_PROJECTNAME}"
-		"${DAY1_CH3_PROJECTNAME}"
-		"${DAY1_CH4_PROJECTNAME}"
+############################################################
+# Day 7
+############################################################
+set (DAY7_CH1_PROJECTNAME DirectX11_Study_Day7_Chapter1)
+set (DAY7_CH1_FILES "src/common.manifest" "src/Day7/1. CPU Texture Blur/Main.cpp")
+add_executable (${DAY7_CH1_PROJECTNAME} WIN32 ${DAY7_CH1_FILES})
+target_include_directories (${DAY7_CH1_PROJECTNAME} PUBLIC ${INCLUDE_HEADERS})
+target_link_libraries (${DAY7_CH1_PROJECTNAME} ${LINKAGE_STATIC_LIBS})
+target_compile_options (${DAY7_CH1_PROJECTNAME} PUBLIC "/openmp")
 
-		"${DAY2_CH1_PROJECTNAME}"
-		"${DAY2_CH2_PROJECTNAME}"
-		"${DAY2_CH3_PROJECTNAME}"
-		"${DAY2_CH4_PROJECTNAME}"
-
-		"${DAY3_CH1_PROJECTNAME}"
-		"${DAY3_CH2_PROJECTNAME}"
-		"${DAY3_CH3_PROJECTNAME}"
-
-		"${DAY4_CH1_PROJECTNAME}"
-		"${DAY4_CH2_PROJECTNAME}"
-
-		"${DAY5_CH1_PROJECTNAME}"
-		"${DAY5_CH2_PROJECTNAME}"
-		
-		"${DAY6_CH1_PROJECTNAME}"
-		"${DAY6_CH2_PROJECTNAME}"
-		"${DAY6_CH3_PROJECTNAME}"
-	RUNTIME DESTINATION ${INSTALL_BIN_DIR}
-)
-install (
-	DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/res DESTINATION ${CMAKE_INSTALL_PREFIX}
-)
+set (DAY7_CH2_PROJECTNAME DirectX11_Study_Day7_Chapter2)
+set (DAY7_CH2_FILES "src/common.manifest" "src/Day7/2. DirectCompute Texture Blur/Main.cpp")
+add_executable (${DAY7_CH2_PROJECTNAME} WIN32 ${DAY7_CH2_FILES})
+target_include_directories (${DAY7_CH2_PROJECTNAME} PUBLIC ${INCLUDE_HEADERS})
+target_link_libraries (${DAY7_CH2_PROJECTNAME} ${LINKAGE_STATIC_LIBS})
