@@ -196,8 +196,6 @@ void Update (float dt)
 
 void Render (float dt)
 {
-	static ID3D11ShaderResourceView* srvs[] = { nullptr };
-	static ID3D11RenderTargetView* rtvs[] = { nullptr };
 	static float clearColor[] = { 0, 0, 0, 1 };
 
 	immediateContext->ClearState ();

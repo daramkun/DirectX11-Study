@@ -131,10 +131,32 @@ int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE, LPSTR, int)
 	return (int)msg.wParam;
 }
 
+bool g_keyDowned[256] = {};
+DirectX::XMINT2 g_mousePosition;
+bool g_mouseButtonDowned[3] = {};
+
+bool IsKeyDown (BYTE vk) { return g_keyDowned[vk]; }
+DirectX::XMINT2 GetMousePosition () { return g_mousePosition; }
+bool IsMouseButtonDown (int button) { return g_mouseButtonDowned[button]; }
+
 LRESULT CALLBACK WndProc (HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	switch (uMsg)
 	{
+	case WM_KEYDOWN: g_keyDowned[wParam] = true; break;
+	case WM_KEYUP: g_keyDowned[wParam] = false; break;
+
+	case WM_MOUSEMOVE:
+		g_mousePosition = DirectX::XMINT2 (LOWORD (lParam), HIWORD (lParam));
+		break;
+
+	case WM_LBUTTONDOWN: g_mouseButtonDowned[0] = true; break;
+	case WM_LBUTTONUP: g_mouseButtonDowned[0] = false; break;
+	case WM_RBUTTONDOWN: g_mouseButtonDowned[1] = true; break;
+	case WM_RBUTTONUP: g_mouseButtonDowned[1] = false; break;
+	case WM_MBUTTONDOWN: g_mouseButtonDowned[2] = true; break;
+	case WM_MBUTTONUP: g_mouseButtonDowned[2] = false; break;
+
 	case WM_CLOSE:
 		PostQuitMessage (0);
 		break;
@@ -394,6 +416,116 @@ HRESULT LoadTexture2D (ID3D11Device* d3dDevice, LPCTSTR filename, ID3D11Texture2
 	textureInitialData.SysMemSlicePitch = totalSize;
 
 	if (FAILED (d3dDevice->CreateTexture2D (&textureDesc, &textureInitialData, texture)))
+		return E_FAIL;
+
+	return S_OK;
+}
+
+HRESULT LoadTextureCube (ID3D11Device* d3dDevice, LPCTSTR px, LPCTSTR nx, LPCTSTR py, LPCTSTR ny, LPCTSTR pz, LPCTSTR nz, ID3D11Texture2D** texture)
+{
+#ifndef UNICODE
+	USES_CONVERSION;
+#endif
+	std::vector<BYTE> cubeTextureBuffer;
+	UINT width = 0, height = 0;
+	UINT stride = 0, totalSize = 0;
+
+	CComPtr<IWICImagingFactory> wicFactory;
+	if (FAILED (CoCreateInstance (CLSID_WICImagingFactory, nullptr, CLSCTX_ALL, __uuidof(IWICImagingFactory), (void**)& wicFactory)))
+		return E_FAIL;
+
+	LPCTSTR filenames[6] = { px, nx, py, ny, pz, nz };
+	for (LPCTSTR filename : filenames)
+	{
+		TCHAR readFile[512];
+		if (PathFileExists (filename))
+		{
+			memcpy (readFile, filename, _tcslen (filename) * sizeof (TCHAR));
+		}
+		else
+		{
+			StringStream ss;
+			ss << TEXT ("..\\res\\");
+			ss << filename;
+			GetFullPathName (ss.str ().c_str (), 512, readFile, nullptr);
+			if (!PathFileExists (readFile))
+			{
+				ss = StringStream ();
+				ss << TEXT ("..\\..\\..\\res\\");
+				ss << filename;
+				GetFullPathName (ss.str ().c_str (), 512, readFile, nullptr);
+				if (!PathFileExists (readFile))
+					return E_FAIL;
+			}
+		}
+
+		LPCWSTR convedFilename;
+#ifndef UNICODE
+		convedFilename = A2W (readFile);
+#else
+		convedFilename = readFile;
+#endif
+
+		CComPtr<IWICBitmapDecoder> wicDecoder;
+		if (FAILED (wicFactory->CreateDecoderFromFilename (convedFilename, nullptr, GENERIC_READ, WICDecodeMetadataCacheOnDemand, &wicDecoder)))
+			return E_FAIL;
+
+		CComPtr<IWICBitmapFrameDecode> frameDecode;
+		if (FAILED (wicDecoder->GetFrame (0, &frameDecode)))
+			return E_FAIL;
+
+		CComPtr<IWICFormatConverter> formatConverter;
+		if (FAILED (wicFactory->CreateFormatConverter (&formatConverter)))
+			return E_FAIL;
+
+		if (FAILED (formatConverter->Initialize (frameDecode, GUID_WICPixelFormat32bppBGRA,
+			WICBitmapDitherTypeNone, nullptr, 1, WICBitmapPaletteTypeCustom)))
+			return E_FAIL;
+
+		UINT twidth, theight;
+		formatConverter->GetSize (&twidth, &theight);
+		if (width != 0 && height != 0)
+		{
+			if (width != twidth || height != theight)
+				return E_FAIL;
+		}
+		else
+		{
+			width = twidth;
+			height = theight;
+
+			stride = width * 4;
+			totalSize = stride * height;
+		}
+		UINT offset = cubeTextureBuffer.size ();
+
+		cubeTextureBuffer.resize (cubeTextureBuffer.size () + totalSize);
+
+		if (FAILED (formatConverter->CopyPixels (nullptr, stride, totalSize, cubeTextureBuffer.data () + offset)))
+			return E_FAIL;
+	}
+
+	D3D11_TEXTURE2D_DESC textureDesc = {};
+	textureDesc.ArraySize = 6;
+	textureDesc.MipLevels = 1;
+	textureDesc.Width = width;
+	textureDesc.Height = height;
+	textureDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+	textureDesc.Usage = D3D11_USAGE_DEFAULT;
+	textureDesc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	textureDesc.SampleDesc.Count = 1;
+	textureDesc.MiscFlags = D3D11_RESOURCE_MISC_TEXTURECUBE;
+
+	D3D11_SUBRESOURCE_DATA textureInitialData [6] = {};
+
+	for (int i = 0; i < 6; ++i)
+	{
+		textureInitialData[i].pSysMem = cubeTextureBuffer.data () + (totalSize * i);
+		textureInitialData[i].SysMemPitch = stride;
+		textureInitialData[i].SysMemSlicePitch = totalSize;
+	}
+
+	if (FAILED (d3dDevice->CreateTexture2D (&textureDesc, textureInitialData, texture)))
 		return E_FAIL;
 
 	return S_OK;
@@ -796,6 +928,79 @@ HRESULT CreateModelFromOBJFile (ID3D11Device* d3dDevice, LPCTSTR filename, ID3D1
 
 	D3D11_SUBRESOURCE_DATA initialData = {};
 	initialData.pSysMem = vertexList.data ();
+	initialData.SysMemPitch = sizeof (vertexList);
+
+	return d3dDevice->CreateBuffer (&bufferDesc, &initialData, buffer);
+}
+
+struct FRAMEWORK_SKYBOX_VERTEX
+{
+	DirectX::XMFLOAT3 position;
+	DirectX::XMFLOAT3 normal;
+	DirectX::XMFLOAT3 texcoord;
+	DirectX::XMFLOAT4 color;
+};
+
+UINT FrameworkSkyboxVertexStride () { return sizeof (FRAMEWORK_SKYBOX_VERTEX); }
+
+HRESULT CreateSkyboxBox (ID3D11Device* d3dDevice, ID3D11Buffer** buffer, UINT* vertices)
+{
+	static FRAMEWORK_SKYBOX_VERTEX vertexList[] = {
+		{ { +1, -1, -1 }, {0, 0, -1}, { 1, 0, 0 }, { 1, 1, 1, 1 } },
+		{ { +1, +1, -1 }, {0, 0, -1}, { 1, 1, 0 }, { 1, 1, 1, 1 } },
+		{ { -1, -1, -1 }, {0, 0, -1}, { 0, 0, 0 }, { 1, 1, 1, 1 } },
+		{ { -1, +1, -1 }, {0, 0, -1}, { 0, 1, 0 }, { 1, 1, 1, 1 } },
+		{ { -1, -1, -1 }, {0, 0, -1}, { 0, 0, 0 }, { 1, 1, 1, 1 } },
+		{ { +1, +1, -1 }, {0, 0, -1}, { 1, 1, 0 }, { 1, 1, 1, 1 } },
+
+		{ { +1, +1, +1 }, {0, 0, +1}, { 1, 1, 1 }, { 1, 1, 1, 1 } },
+		{ { +1, -1, +1 }, {0, 0, +1}, { 1, 0, 1 }, { 1, 1, 1, 1 } },
+		{ { -1, -1, +1 }, {0, 0, +1}, { 0, 0, 1 }, { 1, 1, 1, 1 } },
+		{ { -1, -1, +1 }, {0, 0, +1}, { 0, 0, 1 }, { 1, 1, 1, 1 } },
+		{ { -1, +1, +1 }, {0, 0, +1}, { 0, 1, 1 }, { 1, 1, 1, 1 } },
+		{ { +1, +1, +1 }, {0, 0, +1}, { 1, 1, 1 }, { 1, 1, 1, 1 } },
+
+		{ { -1, +1, +1 }, {-1, 0, 0}, { 0, 1, 1 }, { 1, 1, 1, 1 } },
+		{ { -1, -1, -1 }, {-1, 0, 0}, { 0, 0, 0 }, { 1, 1, 1, 1 } },
+		{ { -1, +1, -1 }, {-1, 0, 0}, { 0, 1, 0 }, { 1, 1, 1, 1 } },
+		{ { -1, -1, -1 }, {-1, 0, 0}, { 0, 0, 0 }, { 1, 1, 1, 1 } },
+		{ { -1, +1, +1 }, {-1, 0, 0}, { 0, 1, 1 }, { 1, 1, 1, 1 } },
+		{ { -1, -1, +1 }, {-1, 0, 0}, { 0, 0, 1 }, { 1, 1, 1, 1 } },
+
+		{ { +1, +1, +1 }, {+1, 0, 0}, { 1, 1, 1 }, { 1, 1, 1, 1 } },
+		{ { +1, +1, -1 }, {+1, 0, 0}, { 1, 1, 0 }, { 1, 1, 1, 1 } },
+		{ { +1, -1, -1 }, {+1, 0, 0}, { 1, 0, 0 }, { 1, 1, 1, 1 } },
+		{ { +1, -1, -1 }, {+1, 0, 0}, { 1, 0, 0 }, { 1, 1, 1, 1 } },
+		{ { +1, -1, +1 }, {+1, 0, 0}, { 1, 0, 1 }, { 1, 1, 1, 1 } },
+		{ { +1, +1, +1 }, {+1, 0, 0}, { 1, 1, 1 }, { 1, 1, 1, 1 } },
+
+		{ { -1, -1, -1 }, {0, -1, 0}, { 0, 0, 0 }, { 1, 1, 1, 1 } },
+		{ { +1, -1, +1 }, {0, -1, 0}, { 1, 0, 1 }, { 1, 1, 1, 1 } },
+		{ { +1, -1, -1 }, {0, -1, 0}, { 1, 0, 0 }, { 1, 1, 1, 1 } },
+		{ { +1, -1, +1 }, {0, -1, 0}, { 1, 0, 1 }, { 1, 1, 1, 1 } },
+		{ { -1, -1, -1 }, {0, -1, 0}, { 0, 0, 0 }, { 1, 1, 1, 1 } },
+		{ { -1, -1, +1 }, {0, -1, 0}, { 0, 0, 1 }, { 1, 1, 1, 1 } },
+
+		{ { -1, +1, -1 }, {0, +1, 0}, { 0, 1, 0 }, { 1, 1, 1, 1 } },
+		{ { +1, +1, -1 }, {0, +1, 0}, { 1, 1, 0 }, { 1, 1, 1, 1 } },
+		{ { +1, +1, +1 }, {0, +1, 0}, { 1, 1, 1 }, { 1, 1, 1, 1 } },
+		{ { +1, +1, +1 }, {0, +1, 0}, { 1, 1, 1 }, { 1, 1, 1, 1 } },
+		{ { -1, +1, +1 }, {0, +1, 0}, { 0, 1, 1 }, { 1, 1, 1, 1 } },
+		{ { -1, +1, -1 }, {0, +1, 0}, { 0, 1, 0 }, { 1, 1, 1, 1 } },
+	};
+
+	if (d3dDevice == nullptr || buffer == nullptr || vertices == nullptr)
+		return E_INVALIDARG;
+
+	*vertices = _countof (vertexList);
+
+	D3D11_BUFFER_DESC bufferDesc = {};
+	bufferDesc.ByteWidth = sizeof (vertexList);
+	bufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	bufferDesc.Usage = D3D11_USAGE_DEFAULT;
+
+	D3D11_SUBRESOURCE_DATA initialData = {};
+	initialData.pSysMem = vertexList;
 	initialData.SysMemPitch = sizeof (vertexList);
 
 	return d3dDevice->CreateBuffer (&bufferDesc, &initialData, buffer);

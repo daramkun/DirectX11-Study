@@ -54,6 +54,10 @@ extern void Destroy ();
 extern void Update (float dt);
 extern void Render (float dt);
 
+bool IsKeyDown (BYTE vk);
+DirectX::XMINT2 GetMousePosition ();
+bool IsMouseButtonDown (int button);
+
 HRESULT CreateDevice11 (HWND hWnd, UINT width, UINT height,
 	ID3D11Device** device, ID3D11DeviceContext** immediate, IDXGISwapChain** swapChain);
 
@@ -67,6 +71,7 @@ HRESULT ReadAndCompile (LPCTSTR filename, LPCSTR profile, LPCSTR main, void* buf
 
 HRESULT CreateInputLayoutFromVertexShader (ID3D11Device* d3dDevice, void* vs, UINT vsLength, ID3D11InputLayout** inputLayout);
 HRESULT LoadTexture2D (ID3D11Device* d3dDevice, LPCTSTR filename, ID3D11Texture2D** texture);
+HRESULT LoadTextureCube (ID3D11Device* d3dDevice, LPCTSTR px, LPCTSTR nx, LPCTSTR py, LPCTSTR ny, LPCTSTR pz, LPCTSTR nz, ID3D11Texture2D** texture);
 
 DirectX::XMFLOAT3 GetNormalVector (const DirectX::XMFLOAT3& a, const DirectX::XMFLOAT3& b, const DirectX::XMFLOAT3& c);
 
@@ -76,5 +81,27 @@ HRESULT CreateRectangle (ID3D11Device* d3dDevice, ID3D11Buffer** buffer, UINT* v
 HRESULT CreateBox (ID3D11Device* d3dDevice, ID3D11Buffer** buffer, UINT* vertices);
 HRESULT CreateSphere (ID3D11Device* d3dDevice, ID3D11Buffer** buffer, UINT* vertices);
 HRESULT CreateModelFromOBJFile (ID3D11Device* d3dDevice, LPCTSTR filename, ID3D11Buffer** buffer, UINT* vertices);
+
+UINT FrameworkSkyboxVertexStride ();
+HRESULT CreateSkyboxBox (ID3D11Device* d3dDevice, ID3D11Buffer** buffer, UINT* vertices);
+
+class IDUR
+{
+public:
+	virtual ~IDUR () {}
+
+public:
+	virtual HRESULT Initialize (HWND hWnd, UINT width, UINT height) = 0;
+
+public:
+	virtual void Update (float dt) = 0;
+	virtual void Render (float dt) = 0;
+};
+
+#define REGISTER_IDUR(x)									x *g_idur;\
+															HRESULT Initialize (HWND hWnd, UINT width, UINT height) { g_idur = new x (); return g_idur->Initialize (hWnd, width, height); }\
+															void Destroy () { if(g_idur) delete g_idur; g_idur = nullptr; }\
+															void Update (float dt) { g_idur->Update(dt); }\
+															void Render (float dt) { g_idur->Render (dt); }
 
 #endif
