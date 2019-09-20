@@ -64,11 +64,38 @@ HRESULT ReadAllData (LPCTSTR filename, void* buffer, UINT maxLength, UINT* readL
 	return S_OK;
 }
 
+HRESULT CreateStream (LPCTSTR filename, DWORD grfMode, IStream** stream)
+{
+	TCHAR readFile[512];
+	if (PathFileExists (filename))
+	{
+		memcpy (readFile, filename, _tcslen (filename) * sizeof (TCHAR));
+	}
+	else
+	{
+		StringStream ss;
+		ss << TEXT ("..\\res\\");
+		ss << filename;
+		GetFullPathName (ss.str ().c_str (), 512, readFile, nullptr);
+		if (!PathFileExists (readFile))
+		{
+			ss = StringStream ();
+			ss << TEXT ("..\\..\\..\\res\\");
+			ss << filename;
+			GetFullPathName (ss.str ().c_str (), 512, readFile, nullptr);
+			if (!PathFileExists (readFile))
+				return E_FAIL;
+		}
+	}
+
+	return SHCreateStreamOnFile (readFile, grfMode, stream);
+}
+
 LRESULT CALLBACK WndProc (HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 
 int WINAPI WinMain (HINSTANCE hInstance, HINSTANCE, LPSTR, int)
 {
-	if (FAILED (CoInitialize (0)))
+	if (FAILED (CoInitializeEx (nullptr, COINIT_APARTMENTTHREADED | COINIT_MULTITHREADED | COINIT_DISABLE_OLE1DDE)))
 		return -1;
 
 	WNDCLASS wndClass =

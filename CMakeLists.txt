@@ -192,3 +192,12 @@ set (DAY8_CH3_FILES "src/common.manifest" "src/Day8/3. XInput/Main.cpp")
 add_executable (${DAY8_CH3_PROJECTNAME} WIN32 ${DAY8_CH3_FILES})
 target_include_directories (${DAY8_CH3_PROJECTNAME} PUBLIC ${INCLUDE_HEADERS})
 target_link_libraries (${DAY8_CH3_PROJECTNAME} ${LINKAGE_STATIC_LIBS})
+
+############################################################
+# Day 9
+############################################################
+set (DAY9_CH1_PROJECTNAME Day9_Chapter1_3D_Audio_with_XAudio2)
+set (DAY9_CH1_FILES "src/common.manifest" "src/Day9/1. 3D Audio with XAudio2/Main.cpp")
+add_executable (${DAY9_CH1_PROJECTNAME} WIN32 ${DAY9_CH1_FILES})
+target_include_directories (${DAY9_CH1_PROJECTNAME} PUBLIC ${INCLUDE_HEADERS})
+target_link_libraries (${DAY9_CH1_PROJECTNAME} ${LINKAGE_STATIC_LIBS})

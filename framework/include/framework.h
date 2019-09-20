@@ -33,6 +33,7 @@
 #	include <d3dcompiler.h>
 #	include <Xinput.h>
 #	include <xaudio2.h>
+#	include <x3daudio.h>
 
 #	include <wincodec.h>
 
@@ -48,6 +49,7 @@
 
 float GetTime ();
 HRESULT ReadAllData (LPCTSTR filename, void* buffer, UINT maxLength, UINT* readLength);
+HRESULT CreateStream (LPCTSTR filename, DWORD grfMode, IStream** stream);
 
 extern HRESULT Initialize (HWND hWnd, UINT width, UINT height);
 extern void Destroy ();
